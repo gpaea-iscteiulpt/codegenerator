@@ -15,7 +15,6 @@ public class UserSnippet implements UserCode{
 		ArrayList<UserCodeGenerator> list = new ArrayList<UserCodeGenerator>();
 		HashMap<String,String> hm1 = new HashMap<String,String>(); 
 		hm1.put("teste1", "public void teste1(){\n\t\tSystem.out.println(\"Teste1\");\n\t}");
-<<<<<<< HEAD
 		UserCodeGenerator usg1 = new UserCodeGenerator(hm1, RangeScope.ALL);
 		HashMap<String,String> hm2 = new HashMap<String,String>();
 		hm2.put("teste2", "public void teste2(){\n\t\tSystem.out.println(\"Teste2\");\n\t}");
@@ -34,15 +33,6 @@ public class UserSnippet implements UserCode{
 		list.add(usg3);
 		list.add(usg4);
 		list.add(usg5);
-=======
-		hm1.put("teste2", "public void teste2(){\n\t\tSystem.out.println(\"Teste2\");\n\t}");
-		UserCodeGenerator usg1 = new UserCodeGenerator(hm1, RangeScope.ALL);		
-		HashMap<String,String> hm2 = new HashMap<String,String>();
-		hm2.put("teste3", "public void teste3(){\n\t\tSystem.out.println(\"Teste3\");\n\t}");
-		UserCodeGenerator usg2 = new UserCodeGenerator(hm2, RangeScope.INSIDEMETHOD);
-		list.add(usg1);
-		list.add(usg2);
->>>>>>> branch 'master' of https://github.com/gpaea-iscteiulpt/codegenerator.git
 		return list;
 	}
 }
