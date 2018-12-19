@@ -45,35 +45,7 @@ public class CodeView implements PidescoView{
 		ButtonGenerator.addSurroundWith(codeGeneratorComposite, "Suround with try/catch", editorServ);	
 		
 		ListGenerator.registerUserCode(userCodeComposite);
-		
-		
-		ServiceReference<CodeGeneratorServices> codeReference = context.getServiceReference(CodeGeneratorServices.class);
-		CodeGeneratorServices codeServ = context.getService(codeReference);
-		
-		Button b = new Button(codeGeneratorComposite, SWT.VERTICAL);
-		b.setText("TESTAR SERVIÇOS");
-		b.addSelectionListener(new SelectionListener() {
-			
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				String path = "C:\\Users\\z004004j\\Desktop\\Projeto PA\\TestWorkspace\\src\\Car.java";
-				AccessibilityType accessibility = AccessibilityType.PRIVATE;
-				String fieldName = "fieldTeste";
-				String fieldType = "String";
-				boolean isStatic = true;
-				String methodName = "setTeste";
-				String returnType = "String";
-				ArrayList<String> parameters = new ArrayList<String>();
-				parameters.add("int testeInt");
-				parameters.add("boolean testeBol");
-				codeServ.addSettersAndGetters(path, parameters);
-			}
-			
-			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {}
-		});
-		
-
+	
 	}
 	
 	private Composite buildComposite(TabFolder tabFolder, String tabTitle, String tabToolTip) {
