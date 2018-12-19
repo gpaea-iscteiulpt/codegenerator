@@ -23,24 +23,42 @@ public class CodeView implements PidescoView{
 		
 		ServiceReference<JavaEditorServices> editorReference = context.getServiceReference(JavaEditorServices.class);
 		JavaEditorServices editorServ = context.getService(editorReference);
+		
+		TabFolder tabFolder = new TabFolder(viewArea, SWT.NONE);
+		
+		Composite codeGeneratorComposite = buildComposite(tabFolder, "Source", "This is tab show the basic functionalities granted with this plug-in.");
+		Composite userCodeComposite = buildComposite(tabFolder, "Snippets", "This is tab shows the user snippets, implemented via extension-point.");
 	    
-	    ButtonGenerator.addGenerateCode(viewArea, "Generate code", editorServ);
+	    ButtonGenerator.addGenerateCode(codeGeneratorComposite, "Generate code", editorServ);
 	    
-		ButtonGenerator.addGettersAndSetters(viewArea, "Generate Getters and Setters...", editorServ);
+		ButtonGenerator.addGettersAndSetters(codeGeneratorComposite, "Generate Getters and Setters...", editorServ);
 		
-		ButtonGenerator.addUncommentComment(viewArea, "Comment/Uncomment block of code", editorServ);
+		ButtonGenerator.addUncommentComment(codeGeneratorComposite, "Comment/Uncomment block of code", editorServ);
 		
-		ButtonGenerator.addToString(viewArea, "Generate toString()", editorServ);
+		ButtonGenerator.addToString(codeGeneratorComposite, "Generate toString()", editorServ);
 		
-		ButtonGenerator.addConstructorFields(viewArea, "Generate constructor with fields...", editorServ);
+		ButtonGenerator.addConstructorFields(codeGeneratorComposite, "Generate constructor with fields...", editorServ);
 
-		ButtonGenerator.addSurroundWith(viewArea, "Suround with try/catch", editorServ);	
+		ButtonGenerator.addSurroundWith(codeGeneratorComposite, "Suround with try/catch", editorServ);	
 		
-		ListGenerator.registerUserCode(viewArea);
+		ListGenerator.registerUserCode(userCodeComposite);
 		
 //		ServiceReference<CodeGeneratorServices> codeReference = context.getServiceReference(CodeGeneratorServices.class);
 //		CodeGeneratorServices codeServ = context.getService(codeReference);
 
 	}
+	
+	private Composite buildComposite(TabFolder tabFolder, String tabTitle, String tabToolTip) {
+		Composite userCodeComposite = new Composite(tabFolder, SWT.NONE);
+	    userCodeComposite.setLayout(new FillLayout(SWT.VERTICAL));
+	    
+	    TabItem userCodeTab = new TabItem(tabFolder, SWT.NONE);
+	    userCodeTab.setText(tabTitle);
+	    userCodeTab.setToolTipText(tabToolTip);
+	    userCodeTab.setControl(userCodeComposite);
+	    
+	    return userCodeComposite;
+	}
+
 	
 }
