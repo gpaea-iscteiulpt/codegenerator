@@ -41,20 +41,9 @@ public class CodeView implements PidescoView{
 		
 		ListGenerator.registerUserCode(viewArea);
 		
-		ServiceReference<CodeGeneratorServices> codeReference = context.getServiceReference(CodeGeneratorServices.class);
-		CodeGeneratorServices codeServ = context.getService(codeReference);
-		
-		Button b = new Button(viewArea, SWT.VERTICAL);
-		b.addSelectionListener(new SelectionListener() {
-			
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				codeServ.addFunction("C:\\Users\\z004004j\\eclipse-workspace\\Test\\src\\Car.java", AccessibilityType.PUBLIC, "Teste4", "String", false);				
-			}
-			
-			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {}
-		});
+//		ServiceReference<CodeGeneratorServices> codeReference = context.getServiceReference(CodeGeneratorServices.class);
+//		CodeGeneratorServices codeServ = context.getService(codeReference);
+	
 	}
 	
 	

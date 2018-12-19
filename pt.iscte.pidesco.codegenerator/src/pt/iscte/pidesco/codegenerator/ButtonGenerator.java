@@ -1,14 +1,26 @@
 package pt.iscte.pidesco.codegenerator;
 
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Scanner;
 
+import org.eclipse.core.runtime.FileLocator;
+import org.eclipse.core.runtime.IConfigurationElement;
+import org.eclipse.core.runtime.IExtensionRegistry;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
@@ -19,6 +31,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.osgi.framework.Bundle;
 
 import pt.iscte.pidesco.codegenerator.extensibility.RangeScope;
 import pt.iscte.pidesco.javaeditor.service.JavaEditorServices;
@@ -46,33 +59,41 @@ public class ButtonGenerator {
 				File f = editorServ.getOpenedFile();
 				if (f != null) {
 					ITextSelection sel = editorServ.getTextSelected(f);
-					JSONObject object = getUserCode(sel.getText());
-					if(object != null) {
-						RangeScope scopeRange = RangeScope.valueOf(object.get("scope").toString());
-						if(checkIfCursorIsInRange(new File("C:\\Users\\z004004j\\eclipse-workspace\\pt.iscte.pidesco.codegenerator\\src\\pt\\iscte\\pidesco\\codegenerator\\user_code.json"), editorServ, scopeRange)) {
-							String code = (String) object.get("code");
-							ClearSelected(editorServ);
-							editorServ.insertTextAtCursor(code);
-							editorServ.saveFile(f);
-						}else {
-							System.out.println("Out of range!");
+					IExtensionRegistry reg = Platform.getExtensionRegistry();
+					IConfigurationElement[] elements = reg.getConfigurationElementsFor("pt.iscte.pidesco.codegenerator.snippets");
+					if(elements.length > 0) {
+						JSONObject object = getUserCode(sel.getText());
+						if(object != null) {
+							RangeScope scopeRange = RangeScope.valueOf(object.get("scope").toString());
+							if(checkIfCursorIsInRange(f, editorServ, scopeRange)) {
+								String code = (String) object.get("code");
+								ClearSelected(editorServ);
+								editorServ.insertTextAtCursor(code);
+								editorServ.saveFile(f);
+							}
 						}
 					}else if((sel.getText() + ".java").equals(f.getName())) {
-						String name = sel.getText();
-						ClearSelected(editorServ);
-						String text = "\n\tpublic " + name + "(){" + "\n\n\t}";
-						editorServ.insertTextAtCursor(text);
-						editorServ.saveFile(f);
+						if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
+							String name = sel.getText();
+							ClearSelected(editorServ);
+							String text = "\n\tpublic " + name + "(){" + "\n\n\t}";
+							editorServ.insertTextAtCursor(text);
+							editorServ.saveFile(f);
+						}
 					}else if((sel.getText()).equals("main")) {
-						ClearSelected(editorServ);
-						String text = "\n\tpublic static void main(String[] args){\n\n\t}";
-						editorServ.insertTextAtCursor(text);
-						editorServ.saveFile(f);
+						if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
+							ClearSelected(editorServ);
+							String text = "\n\tpublic static void main(String[] args){\n\n\t}";
+							editorServ.insertTextAtCursor(text);
+							editorServ.saveFile(f);
+						}
 					}else if((sel.getText()).equals("sysout")) {
-						ClearSelected(editorServ);
-						String text = "\n\tSystem.out.println();";
-						editorServ.insertTextAtCursor(text);
-						editorServ.saveFile(f);
+						if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDEMETHOD)) {
+							ClearSelected(editorServ);
+							String text = "\n\tSystem.out.println();";
+							editorServ.insertTextAtCursor(text);
+							editorServ.saveFile(f);
+						}
 					}
 				}
 			}
@@ -93,16 +114,18 @@ public class ButtonGenerator {
 				if (f != null) {
 					CodeVisitor visitor = new CodeVisitor();
 					editorServ.parseFile(f, visitor);
-					if(!visitor.fields.isEmpty()) {
-						boolean firstSetter = true;
-						for(FieldDeclaration field: visitor.getFields()) {
-							String[] splitted = field.toString().replace(";", "").split(" ");
-							GenerateSetter(firstSetter,  splitted[splitted.length-1].replaceAll("\n", ""), splitted[splitted.length-2], f);
-							if(firstSetter = true) firstSetter = false; 
-							GenerateGetter(splitted[splitted.length-1].replaceAll("\n", ""), splitted[splitted.length-2], f);
+					if(!visitor.getFields().isEmpty()) {
+						if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDECLASS)) {
+							boolean firstSetter = true;
+							for(FieldDeclaration field: visitor.getFields()) {
+								String[] splitted = field.toString().replace(";", "").split(" ");
+								GenerateSetter(firstSetter,  splitted[splitted.length-1].replaceAll("\n", ""), splitted[splitted.length-2], f);
+								if(firstSetter = true) firstSetter = false; 
+								GenerateGetter(splitted[splitted.length-1].replaceAll("\n", ""), splitted[splitted.length-2], f);
+							}
+							editorServ.saveFile(f);
 						}
 					}
-					editorServ.saveFile(f);
 					buttonGenerator.viewArea.layout();
 				}
 			}
@@ -167,20 +190,22 @@ public class ButtonGenerator {
 					editorServ.parseFile(f, visitor);
 					String fileName = f.getName().replaceAll(".java", "");
 					String toString = "@Override\n\tpublic String toString(){\n\t\treturn \""+ fileName + " [";
-					if(!visitor.getFields().isEmpty()) {
-						for(int i = 0; i< visitor.getFields().size(); i++) {
-							String[] splitted = visitor.getFields().get(i).toString().replace(";", "").split(" ");
-							String fieldName = splitted[splitted.length - 1].replace("\n", "");
-							toString += fieldName + "=\" + " + fieldName + " + \"";
-							if(i!=visitor.getFields().size()-1) {
-								toString += ", ";
+					if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDECLASS)) {
+						if(!visitor.getFields().isEmpty()) {
+							for(int i = 0; i< visitor.getFields().size(); i++) {
+								String[] splitted = visitor.getFields().get(i).toString().replace(";", "").split(" ");
+								String fieldName = splitted[splitted.length - 1].replace("\n", "");
+								toString += fieldName + "=\" + " + fieldName + " + \"";
+								if(i!=visitor.getFields().size()-1) {
+									toString += ", ";
+								}
 							}
 						}
+						toString += "]\";\n\t}";
+						editorServ.insertTextAtCursor(toString);
+						editorServ.saveFile(f);
 					}
-					toString += "]\";\n\t}";
-					ClearSelected(editorServ);
-					editorServ.insertTextAtCursor(toString);
-					editorServ.saveFile(f);
+					
 					buttonGenerator.viewArea.layout();
 				}
 			}
@@ -204,23 +229,24 @@ public class ButtonGenerator {
 					CodeVisitor visitor = new CodeVisitor();
 					editorServ.parseFile(f, visitor);
 					if(!visitor.getFields().isEmpty()) {
-						String className = f.getName().replace(".java", "");
-						String statement = "public " + className + "(";
-						String setValues = "){\n\t\t ";
-						for(FieldDeclaration field: visitor.getFields()) {
-							String[] splitted = field.toString().replace(";", "").replace("\n", "").split(" ");
-							statement += splitted[splitted.length-2] + " " + splitted[splitted.length-1];
-							if(!field.equals(visitor.getFields().get(visitor.getFields().size()-1))){
-								statement += ",";
+						if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDECLASS)) {
+							String className = f.getName().replace(".java", "");
+							String statement = "public " + className + "(";
+							String setValues = "){\n\t\t ";
+							for(FieldDeclaration field: visitor.getFields()) {
+								String[] splitted = field.toString().replace(";", "").replace("\n", "").split(" ");
+								statement += splitted[splitted.length-2] + " " + splitted[splitted.length-1];
+								if(!field.equals(visitor.getFields().get(visitor.getFields().size()-1))){
+									statement += ",";
+								}
+								setValues += "this." + splitted[splitted.length-1] + "=" + splitted[splitted.length-1] + ";\n";
 							}
-							setValues += "this." + splitted[splitted.length-1] + "=" + splitted[splitted.length-1] + ";\n";
+							
+							statement = statement + setValues + "\t\t}";
+							editorServ.insertTextAtCursor(statement);
+							editorServ.saveFile(f);
 						}
-						
-						statement = statement + setValues + "\t\t}";
-						editorServ.insertTextAtCursor(text);
-						//ConstructorWindow cWindow = new ConstructorWindow(visitor.fields);
 					}
-					editorServ.saveFile(f);
 					buttonGenerator.viewArea.layout();
 				}
 			}
@@ -248,12 +274,14 @@ public class ButtonGenerator {
 					}else{
 						CodeVisitor visitor = new CodeVisitor();
 						editorServ.parseFile(f, visitor);
-						String text = "try {\n\t\t\t" + sel.getText() + "\n\t\t}catch(Exception e){ \n \t\t\t// TODO Auto-generated catch block\n\t\t\te.printStackTrace();\n\t\t}";
-						ClearSelected(editorServ);
-						editorServ.insertTextAtCursor(text);
+						if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDEMETHOD)) {
+							String text = "try {\n\t\t\t" + sel.getText() + "\n\t\t}catch(Exception e){ \n \t\t\t// TODO Auto-generated catch block\n\t\t\te.printStackTrace();\n\t\t}";
+							ClearSelected(editorServ);
+							editorServ.insertTextAtCursor(text);
+							editorServ.saveFile(f);
+						}
 					}
 				}
-				editorServ.saveFile(f);
 				buttonGenerator.viewArea.layout();
 			}
 			
@@ -265,6 +293,7 @@ public class ButtonGenerator {
 	}
 	
 	private static boolean checkIfCursorIsInRange(File file, JavaEditorServices editorServ, RangeScope scope) {
+		editorServ.saveFile(file);
 		int cursorPosition = editorServ.getCursorPosition();
 		CodeVisitor visitor = new CodeVisitor();
 		editorServ.parseFile(file, visitor);
@@ -272,20 +301,20 @@ public class ButtonGenerator {
 			case "ALL":
 				return true;
 			case "INSIDECLASS":
-				ClassPosition classPosition = getClassPosition(file);
-				if(cursorPosition > classPosition.startClassPosition && cursorPosition < classPosition.endClassPosition) {
+				StatementPosition positionInner = StatementPosition.searchStatementInFile(file, file.getName().replace(".java", ""));
+				if(cursorPosition > positionInner.getStartPosition() && cursorPosition < positionInner.getEndPosition()) {
 					return true;
 				}
 				return false;
 			case "OUTOFCLASS":
-				classPosition = getClassPosition(file);
-				if(cursorPosition < classPosition.startClassPosition && cursorPosition > classPosition.endClassPosition) {
+				StatementPosition positionOutter = StatementPosition.searchStatementInFile(file, file.getName().replace(".java", ""));
+				if(cursorPosition < positionOutter.getStartPosition() || cursorPosition > positionOutter.getEndPosition()) {
 					return true;
 				}
 				return false;
 			case "INSIDEMETHOD":
-				if(visitor.methods.size() > 0) {
-					for(MethodDeclaration method : visitor.methods) {
+				if(visitor.getMethods().size() > 0) {
+					for(MethodDeclaration method : visitor.getMethods()) {
 						if(method.getStartPosition() <= cursorPosition && method.getStartPosition() + method.getLength() >= cursorPosition) {
 							return true;
 						}
@@ -293,8 +322,8 @@ public class ButtonGenerator {
 				}
 				return false;
 			case "OUTSIDEMETHOD":
-				if(visitor.methods.size() > 0) {
-					for(MethodDeclaration method : visitor.methods) {
+				if(visitor.getMethods().size() > 0) {
+					for(MethodDeclaration method : visitor.getMethods()) {
 						if(method.getStartPosition() <= cursorPosition && method.getStartPosition() + method.getLength() >= cursorPosition) {
 							return false;
 						}
@@ -306,10 +335,22 @@ public class ButtonGenerator {
 		}
 	}
 	
+	private static String createParameters(MethodDeclaration method) {
+		String parameters = "";
+		if(method.parameters().size() > 0) {
+			for(int i = 0; i < method.parameters().size(); i++) {
+				SingleVariableDeclaration variableDeclaration = (SingleVariableDeclaration) method.parameters().get(i);
+				if(i!=0) parameters += ", ";
+				parameters += variableDeclaration.getType() + " " + variableDeclaration.getName();
+			}
+		}
+		return parameters;
+	}
+	
 	private static JSONObject getUserCode(String macro) {
 		try {
 			JSONParser jsonParser = new JSONParser();	
-			JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader("C:\\Users\\z004004j\\eclipse-workspace\\pt.iscte.pidesco.codegenerator\\src\\pt\\iscte\\pidesco\\codegenerator\\user_code.json"));
+			JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(getUserCodeFile()));
 			JSONArray allMacros = (JSONArray) jsonObject.get("all_macros");
 			for(int i = 0; i < allMacros.size(); i++) {
 				JSONObject object = (JSONObject) allMacros.get(i);
@@ -326,34 +367,22 @@ public class ButtonGenerator {
         return null;
 	}
 	
-	
-	private static ClassPosition getClassPosition(File file) {
-		String fileName = file.getName();
-		int startClassPosition = 0, endClassPosition = 0, totalCount = 0;
-		try {
-			Scanner sc = new Scanner(file);
-			while(sc.hasNext()) {
-				String line = sc.next();
-				if(line.contains(fileName) && startClassPosition != 0) {
-					startClassPosition = line.length();
-				}else if(line.endsWith("}")) {
-					endClassPosition = totalCount + line.length();
-				}
-				totalCount = totalCount + line.length(); 
-			}
-			sc.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-		return new ClassPosition(startClassPosition, endClassPosition, totalCount);
-	}
-	
 	//Function used to clear the text previously selected so it could be replaced.
 	private static void ClearSelected(JavaEditorServices javaServ) {
 		File f = javaServ.getOpenedFile();
 		javaServ.insertText(f, "", javaServ.getTextSelected(f).getOffset(), javaServ.getTextSelected(f).getLength());
 	}
 	
-	
+	private static File getUserCodeFile() {
+		Bundle bundle = Platform.getBundle("pt.iscte.pidesco.codegenerator");
+		URL fileURL = bundle.getEntry("src/pt/iscte/pidesco/codegenerator/user_code.json");
+		File file = null;
+		try {
+			file = new File(FileLocator.resolve(fileURL).toURI());
+		} catch (URISyntaxException | IOException e) {
+			e.printStackTrace();
+		}	
+		return file;
+	}
 	
 }

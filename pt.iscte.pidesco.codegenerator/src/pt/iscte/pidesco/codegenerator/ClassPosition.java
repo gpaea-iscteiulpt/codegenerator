@@ -5,11 +5,6 @@ public class ClassPosition {
 	int endClassPosition = 0;
 	int totalCount = 0;
 
-	/**
-	 * @param startClassPosition
-	 * @param endClassPosition
-	 * @param totalCount
-	 */
 	public ClassPosition(int startClassPosition, int endClassPosition, int totalCount) {
 		super();
 		this.startClassPosition = startClassPosition;

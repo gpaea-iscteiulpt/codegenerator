@@ -246,7 +246,7 @@ public class CodeGeneratorServicesImpl implements CodeGeneratorServices{
 		CodeVisitor codeVisitor = new CodeVisitor();
 		editorServ.parseFile(file, codeVisitor);
 		
-		if(isMethod) {
+		if(isMethod) { 
 			int methodEndPosition = 0;
 			if(!codeVisitor.getMethods().isEmpty() && false) {
 				MethodDeclaration method = codeVisitor.getMethods().get(codeVisitor.getMethods().size()-1);
