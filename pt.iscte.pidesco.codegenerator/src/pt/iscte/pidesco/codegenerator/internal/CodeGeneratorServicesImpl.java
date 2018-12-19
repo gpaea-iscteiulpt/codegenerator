@@ -7,11 +7,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import javax.swing.text.Position;
+
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 
 import pt.iscte.pidesco.codegenerator.AccessibilityType;
 import pt.iscte.pidesco.codegenerator.CodeVisitor;
+import pt.iscte.pidesco.codegenerator.StatementPosition;
 import pt.iscte.pidesco.codegenerator.service.CodeGeneratorServices;
 import pt.iscte.pidesco.javaeditor.service.JavaEditorServices;
 
@@ -31,7 +34,7 @@ public class CodeGeneratorServicesImpl implements CodeGeneratorServices{
 		File file = new File(path);
 		int offset = getInsertLocation(file, editorServ, true);
 		boolean firstSetter = true;
-		String gettersAndSetters = "";
+		String gettersAndSetters = "\n\n\t";
 		for(String field: fields) {
 			String[] splitted = field.replace(";", "").split(" ");
 			gettersAndSetters += GenerateSetter(firstSetter,  splitted[splitted.length-1].replaceAll("\n", ""), splitted[splitted.length-2]);
@@ -212,30 +215,6 @@ public class CodeGeneratorServicesImpl implements CodeGeneratorServices{
 		return CodeGeneratorActivator.getInstance().getJavaEditorServices();
 	}
 	
-	/** Function to return the offset of the end of the file, before the last "}" in the file.
-	 * @param file, where the offset will be searched. 
-	 * @return the offset of the end of the file before the last "}" will be searched.
-	 */
-	private int getEndOfFile(File file) {
-		int offset = 0;
-		int lastBracket = 0;
-		try {
-			Scanner sc = new Scanner(file);
-			while(sc.hasNext()) {
-				String line = sc.next();
-	            offset += line.length();
-	            if(line.endsWith("}")) {
-	            	lastBracket = offset + line.indexOf("}");
-	            }
-	        }
-			sc.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-
-		return lastBracket;
-	}
-	
 	/** Function to return the position of the file where the last method/function or attribute in the file.
 	 * @param file, where the position will be searched.
 	 * @param  editorServ, is the JavaEditorServices to be used to search in the file.
@@ -245,27 +224,38 @@ public class CodeGeneratorServicesImpl implements CodeGeneratorServices{
 	private int getInsertLocation(File file, JavaEditorServices editorServ, boolean isMethod) {
 		CodeVisitor codeVisitor = new CodeVisitor();
 		editorServ.parseFile(file, codeVisitor);
+		int endPosition = 0;
 		if(isMethod) { 
-			int methodEndPosition = 0;
 			if(!codeVisitor.getMethods().isEmpty()) {
 				MethodDeclaration method = codeVisitor.getMethods().get(codeVisitor.getMethods().size()-1);
-				methodEndPosition = method.getStartPosition() + method.getLength();
+				endPosition = method.getStartPosition() + method.getLength();
 			}
-			if(methodEndPosition==0) {
-				methodEndPosition = getEndOfFile(file);
+			if(endPosition == 0) {
+				if(!codeVisitor.getFields().isEmpty()) {
+					FieldDeclaration field = codeVisitor.getFields().get(codeVisitor.getFields().size()-1);
+					endPosition = field.getStartPosition() + field.getLength();
+				}
 			}
-			return methodEndPosition;
 		}else{
-			int fieldEndPosition = 0;
 			if(!codeVisitor.getFields().isEmpty()) {
 				FieldDeclaration field = codeVisitor.getFields().get(codeVisitor.getFields().size()-1);
-				fieldEndPosition = field.getStartPosition() + field.getLength();
+				endPosition = field.getStartPosition() + field.getLength();
 			}
-			if(fieldEndPosition==0) {
-				fieldEndPosition = getEndOfFile(file);
+			if(endPosition == 0) {
+				if(!codeVisitor.getMethods().isEmpty()) {
+					MethodDeclaration method = codeVisitor.getMethods().get(codeVisitor.getMethods().size()-1);
+					endPosition = method.getStartPosition() + method.getLength();
+				}
 			}
-			return fieldEndPosition;
 		}
+		
+		// Returns the offset of the end of the file, before the last "}" in the file.
+		if(endPosition==0) {
+			StatementPosition position = StatementPosition.searchStatementInFile(file, file.getName().replace(".java", ""));
+			endPosition =  position.getEndPosition();
+		}
+		
+		return endPosition;
 	}
 	
 	/** Function to generate a setter for the respective field.
@@ -299,7 +289,7 @@ public class CodeGeneratorServicesImpl implements CodeGeneratorServices{
 	 * @return the code of the start of the function/method.
 	 */
 	private String startStatement(AccessibilityType accessibility, String functionName, String returnType, boolean isStatic) {
-		String start = "\n\t" + accessibility.toString().toLowerCase() + " "; 
+		String start = "\n\n\t" + accessibility.toString().toLowerCase() + " "; 
 		if(isStatic) start += "static ";
 		if(returnType.equals("")) {
 			start += "void";
