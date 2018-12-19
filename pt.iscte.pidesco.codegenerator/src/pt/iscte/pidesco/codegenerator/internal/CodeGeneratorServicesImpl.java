@@ -245,14 +245,9 @@ public class CodeGeneratorServicesImpl implements CodeGeneratorServices{
 	private int getInsertLocation(File file, JavaEditorServices editorServ, boolean isMethod) {
 		CodeVisitor codeVisitor = new CodeVisitor();
 		editorServ.parseFile(file, codeVisitor);
-		
-<<<<<<< HEAD
 		if(isMethod) { 
-=======
-		if(isMethod) {
->>>>>>> branch 'master' of https://github.com/gpaea-iscteiulpt/codegenerator.git
 			int methodEndPosition = 0;
-			if(!codeVisitor.getMethods().isEmpty() && false) {
+			if(!codeVisitor.getMethods().isEmpty()) {
 				MethodDeclaration method = codeVisitor.getMethods().get(codeVisitor.getMethods().size()-1);
 				methodEndPosition = method.getStartPosition() + method.getLength();
 			}
@@ -262,7 +257,7 @@ public class CodeGeneratorServicesImpl implements CodeGeneratorServices{
 			return methodEndPosition;
 		}else{
 			int fieldEndPosition = 0;
-			if(!codeVisitor.getFields().isEmpty() && false) {
+			if(!codeVisitor.getFields().isEmpty()) {
 				FieldDeclaration field = codeVisitor.getFields().get(codeVisitor.getFields().size()-1);
 				fieldEndPosition = field.getStartPosition() + field.getLength();
 			}
