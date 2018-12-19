@@ -5,6 +5,14 @@ public class ClassPosition {
 	int endClassPosition = 0;
 	int totalCount = 0;
 
+<<<<<<< HEAD
+=======
+	/**
+	 * @param startClassPosition
+	 * @param endClassPosition
+	 * @param totalCount
+	 */
+>>>>>>> branch 'master' of https://github.com/gpaea-iscteiulpt/codegenerator.git
 	public ClassPosition(int startClassPosition, int endClassPosition, int totalCount) {
 		super();
 		this.startClassPosition = startClassPosition;

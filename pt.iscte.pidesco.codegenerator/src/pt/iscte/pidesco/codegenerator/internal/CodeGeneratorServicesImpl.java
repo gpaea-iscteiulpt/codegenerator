@@ -246,7 +246,11 @@ public class CodeGeneratorServicesImpl implements CodeGeneratorServices{
 		CodeVisitor codeVisitor = new CodeVisitor();
 		editorServ.parseFile(file, codeVisitor);
 		
+<<<<<<< HEAD
 		if(isMethod) { 
+=======
+		if(isMethod) {
+>>>>>>> branch 'master' of https://github.com/gpaea-iscteiulpt/codegenerator.git
 			int methodEndPosition = 0;
 			if(!codeVisitor.getMethods().isEmpty() && false) {
 				MethodDeclaration method = codeVisitor.getMethods().get(codeVisitor.getMethods().size()-1);
