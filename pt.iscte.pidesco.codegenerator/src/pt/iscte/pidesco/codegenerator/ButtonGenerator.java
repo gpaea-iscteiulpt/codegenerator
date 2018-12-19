@@ -224,17 +224,19 @@ public class ButtonGenerator {
 						if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDECLASS)) {
 							String className = f.getName().replace(".java", "");
 							String statement = "public " + className + "(";
-							String setValues = "){\n\t\t ";
+							String setValues = "){\n\t\t";
 							for(FieldDeclaration field: visitor.getFields()) {
 								String[] splitted = field.toString().replace(";", "").replace("\n", "").split(" ");
 								statement += splitted[splitted.length-2] + " " + splitted[splitted.length-1];
-								if(!field.equals(visitor.getFields().get(visitor.getFields().size()-1))){
-									statement += ",";
-								}
 								setValues += "this." + splitted[splitted.length-1] + "=" + splitted[splitted.length-1] + ";\n";
+								if(!field.equals(visitor.getFields().get(visitor.getFields().size()-1))){
+									statement += ", ";
+									setValues += "\t\t";
+								}	
+								
 							}
 							
-							statement = statement + setValues + "\t\t}";
+							statement = statement + setValues + "\t}";
 							editorServ.insertTextAtCursor(statement);
 							editorServ.saveFile(f);
 						}
