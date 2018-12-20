@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IConfigurationElement;
@@ -49,6 +50,11 @@ public class ButtonGenerator {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				File f = editorServ.getOpenedFile();
+				editorServ.saveFile(f);
+				CodeVisitor visitor = new CodeVisitor();
+				editorServ.parseFile(f, visitor);
+				boolean alreadyExists = false;
+				boolean overwriteExists = false;
 				if (f != null) {
 					ITextSelection sel = editorServ.getTextSelected(f);
 					IExtensionRegistry reg = Platform.getExtensionRegistry();
@@ -60,31 +66,44 @@ public class ButtonGenerator {
 							if(checkIfCursorIsInRange(f, editorServ, scopeRange)) {
 								String code = (String) object.get("code");
 								ClearSelected(editorServ);
+								overwriteExists = true;
 								editorServ.insertTextAtCursor(code);
 								editorServ.saveFile(f);
 							}
 						}
-					}else if((sel.getText() + ".java").equals(f.getName())) {
-						if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
-							String name = sel.getText();
-							ClearSelected(editorServ);
-							String text = "\n\tpublic " + name + "(){" + "\n\n\t}";
-							editorServ.insertTextAtCursor(text);
-							editorServ.saveFile(f);
-						}
-					}else if((sel.getText()).equals("main")) {
-						if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
-							ClearSelected(editorServ);
-							String text = "\n\tpublic static void main(String[] args){\n\n\t}";
-							editorServ.insertTextAtCursor(text);
-							editorServ.saveFile(f);
-						}
-					}else if((sel.getText()).equals("sysout")) {
-						if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDEMETHOD)) {
-							ClearSelected(editorServ);
-							String text = "\n\tSystem.out.println();";
-							editorServ.insertTextAtCursor(text);
-							editorServ.saveFile(f);
+					}
+					if(!overwriteExists) {
+						if((sel.getText() + ".java").equals(f.getName())) {
+							for(MethodDeclaration method : visitor.getMethods()) {
+								if(method.getName().equals(sel.getText()) && method.parameters().isEmpty()) {
+									alreadyExists = true;
+								}
+							}
+							if(!alreadyExists) {
+								if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
+									String name = sel.getText();
+									ClearSelected(editorServ);
+									String text = "\n\tpublic " + name + "(){" + "\n\n\t}";
+									editorServ.insertTextAtCursor(text);
+									editorServ.saveFile(f);
+								}
+							}
+						}else if((sel.getText()).equals("main")) {
+							if(!visitor.getMethodsName().contains("main")) {
+								if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
+									ClearSelected(editorServ);
+									String text = "\n\tpublic static void main(String[] args){\n\n\t}";
+									editorServ.insertTextAtCursor(text);
+									editorServ.saveFile(f);
+								}
+							}
+						}else if((sel.getText()).equals("sysout")) {
+							if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDEMETHOD)) {
+								ClearSelected(editorServ);
+								String text = "\n\tSystem.out.println();";
+								editorServ.insertTextAtCursor(text);
+								editorServ.saveFile(f);
+							}
 						}
 					}
 				}
@@ -103,38 +122,56 @@ public class ButtonGenerator {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				File f = editorServ.getOpenedFile();
+				editorServ.saveFile(f);
 				if (f != null) {
 					CodeVisitor visitor = new CodeVisitor();
 					editorServ.parseFile(f, visitor);
 					if(!visitor.getFields().isEmpty()) {
-						if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDECLASS)) {
-							boolean firstSetter = true;
+						if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
+							String statement = "";
+							boolean firstStatement = true;
 							for(FieldDeclaration field: visitor.getFields()) {
 								String[] splitted = field.toString().replace(";", "").split(" ");
-								GenerateSetter(firstSetter,  splitted[splitted.length-1].replaceAll("\n", ""), splitted[splitted.length-2], f);
-								if(firstSetter = true) firstSetter = false; 
-								GenerateGetter(splitted[splitted.length-1].replaceAll("\n", ""), splitted[splitted.length-2], f);
+								String fieldName = splitted[splitted.length-1].replaceAll("\n", "");
+								String fieldType = splitted[splitted.length-2];
+								if(firstStatement) { 
+									statement += "\n"; 
+									firstStatement = false; 
+								}
+								statement += GenerateSetter(fieldName, fieldType, visitor.getMethodsName());
+								statement += GenerateGetter(fieldName, fieldType, visitor.getMethodsName());
 							}
-							editorServ.saveFile(f);
+							
+							if(!statement.equals("\n")) {
+								editorServ.insertTextAtCursor(statement);
+								editorServ.saveFile(f);
+							}	
 						}
 					}
 					buttonGenerator.viewArea.layout();
 				}
 			}
 			
-			private void GenerateSetter(boolean firstSetter, String fieldName,  String fieldType, File f) {
-				String extraTab = "";
-				if(!firstSetter) extraTab = "\t";
-				editorServ.insertTextAtCursor(extraTab + "public void set" + fieldName.replaceFirst(fieldName.substring(0, 1), fieldName.substring(0, 1).toUpperCase()) + "(" + fieldType + " " + fieldName + "){ \n\t\tthis." + fieldName + "=" + fieldName + ";\n\t}\n\n");
+			private String GenerateSetter(String fieldName, String fieldType, ArrayList<String> allMethodsNames) {
+				String statement = "";
+				String methodName = "set" + fieldName.replaceFirst(fieldName.substring(0, 1), fieldName.substring(0, 1).toUpperCase());
+				if(!allMethodsNames.contains(methodName)) {
+					statement = "\tpublic void " + methodName + "(" + fieldType + " " + fieldName + "){ \n\t\tthis." + fieldName + "=" + fieldName + ";\n\t}\n\n";
+				}
+				return statement;
 			}
 	
-			private void GenerateGetter(String fieldName, String fieldType, File f) {
-				editorServ.insertTextAtCursor("\tpublic " + fieldType + " get" + fieldName.replaceFirst(fieldName.substring(0, 1), fieldName.substring(0, 1).toUpperCase()) + "(){ \n\t\treturn this." + fieldName + "; \n\t}\n\n");
+			private String GenerateGetter(String fieldName, String fieldType, ArrayList<String> allMethodsNames) {
+				String statement = "";
+				String methodName = "get" + fieldName.replaceFirst(fieldName.substring(0, 1), fieldName.substring(0, 1).toUpperCase());
+				if(!allMethodsNames.contains(methodName)) {
+					statement += "\tpublic " + fieldType + " " + methodName + "(){ \n\t\treturn this." + fieldName + "; \n\t}\n\n";
+				}
+				return statement;
 			}
 	
 			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
-			}
+			public void widgetDefaultSelected(SelectionEvent e) {}
 		});
 	}
 	
@@ -146,6 +183,7 @@ public class ButtonGenerator {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				File f = editorServ.getOpenedFile();
+				editorServ.saveFile(f);
 				if (f != null) {
 					ITextSelection sel = editorServ.getTextSelected(f);
 					String textSelected = sel.getText();
@@ -177,27 +215,29 @@ public class ButtonGenerator {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				File f = editorServ.getOpenedFile();
+				editorServ.saveFile(f);
 				if (f != null) {
 					CodeVisitor visitor = new CodeVisitor();
 					editorServ.parseFile(f, visitor);
-					String fileName = f.getName().replaceAll(".java", "");
-					String toString = "@Override\n\tpublic String toString(){\n\t\treturn \""+ fileName + " [";
-					if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDECLASS)) {
-						if(!visitor.getFields().isEmpty()) {
-							for(int i = 0; i< visitor.getFields().size(); i++) {
-								String[] splitted = visitor.getFields().get(i).toString().replace(";", "").split(" ");
-								String fieldName = splitted[splitted.length - 1].replace("\n", "");
-								toString += fieldName + "=\" + " + fieldName + " + \"";
-								if(i!=visitor.getFields().size()-1) {
-									toString += ", ";
+					if(!visitor.getMethodsName().equals("toString")) {
+						String fileName = f.getName().replaceAll(".java", "");
+						String toString = "@Override\n\tpublic String toString(){\n\t\treturn \""+ fileName + " [";
+						if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
+							if(!visitor.getFields().isEmpty()) {
+								for(int i = 0; i< visitor.getFields().size(); i++) {
+									String[] splitted = visitor.getFields().get(i).toString().replace(";", "").split(" ");
+									String fieldName = splitted[splitted.length - 1].replace("\n", "");
+									toString += fieldName + "=\" + " + fieldName + " + \"";
+									if(i!=visitor.getFields().size()-1) {
+										toString += ", ";
+									}
 								}
 							}
+							toString += "]\";\n\t}";
+							editorServ.insertTextAtCursor(toString);
+							editorServ.saveFile(f);
 						}
-						toString += "]\";\n\t}";
-						editorServ.insertTextAtCursor(toString);
-						editorServ.saveFile(f);
 					}
-					
 					buttonGenerator.viewArea.layout();
 				}
 			}
@@ -217,11 +257,12 @@ public class ButtonGenerator {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				File f = editorServ.getOpenedFile();
+				editorServ.saveFile(f);
 				if (f != null) {
 					CodeVisitor visitor = new CodeVisitor();
 					editorServ.parseFile(f, visitor);
 					if(!visitor.getFields().isEmpty()) {
-						if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDECLASS)) {
+						if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
 							String className = f.getName().replace(".java", "");
 							String statement = "public " + className + "(";
 							String setValues = "){\n\t\t";
@@ -261,6 +302,7 @@ public class ButtonGenerator {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				File f = editorServ.getOpenedFile();
+				editorServ.saveFile(f);
 				if (f != null) {
 					ITextSelection sel = editorServ.getTextSelected(f);
 					if(sel.getText().isEmpty()) {

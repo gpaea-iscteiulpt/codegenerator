@@ -10,9 +10,10 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 
 public class CodeVisitor extends ASTVisitor{
 	
-	ArrayList<FieldDeclaration> fields = new ArrayList<FieldDeclaration>();
-	ArrayList<MethodDeclaration> methods = new ArrayList<MethodDeclaration>();
-	ArrayList<Assignment> assignments = new ArrayList<Assignment>();
+	private ArrayList<FieldDeclaration> fields = new ArrayList<FieldDeclaration>();
+	private ArrayList<MethodDeclaration> methods = new ArrayList<MethodDeclaration>();
+	private ArrayList<String> methodsNames = new ArrayList<String>();
+	private ArrayList<Assignment> assignments = new ArrayList<Assignment>();
 	
 	@Override
 	public boolean visit(FieldDeclaration node) {
@@ -31,6 +32,7 @@ public class CodeVisitor extends ASTVisitor{
 	@Override
 	public boolean visit(MethodDeclaration node) {
 		methods.add(node);
+		methodsNames.add(node.getName().toString());
 		return true;
 	}
 	
@@ -38,24 +40,16 @@ public class CodeVisitor extends ASTVisitor{
 		return fields;
 	}
 
-	public void setFields(ArrayList<FieldDeclaration> fields) {
-		this.fields = fields;
-	}
-
 	public ArrayList<MethodDeclaration> getMethods() {
 		return methods;
-	}
-
-	public void setMethods(ArrayList<MethodDeclaration> methods) {
-		this.methods = methods;
 	}
 
 	public ArrayList<Assignment> getAssignments() {
 		return assignments;
 	}
-
-	public void setAssignments(ArrayList<Assignment> assignments) {
-		this.assignments = assignments;
+	
+	public ArrayList<String> getMethodsName() {
+		return methodsNames;
 	}
 	
 }
