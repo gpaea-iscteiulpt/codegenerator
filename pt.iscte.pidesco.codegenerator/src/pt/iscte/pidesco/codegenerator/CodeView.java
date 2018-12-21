@@ -45,7 +45,7 @@ public class CodeView implements PidescoView{
 		ButtonGenerator.addSurroundWith(codeGeneratorComposite, "Suround with try/catch", editorServ);	
 		
 		ListGenerator.registerUserCode(userCodeComposite);
-	
+		
 	}
 	
 	private Composite buildComposite(TabFolder tabFolder, String tabTitle, String tabToolTip) {

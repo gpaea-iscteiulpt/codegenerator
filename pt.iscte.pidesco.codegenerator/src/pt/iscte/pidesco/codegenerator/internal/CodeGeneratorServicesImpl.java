@@ -37,9 +37,11 @@ public class CodeGeneratorServicesImpl implements CodeGeneratorServices{
 		String gettersAndSetters = "\n\n\t";
 		for(String field: fields) {
 			String[] splitted = field.replace(";", "").split(" ");
-			gettersAndSetters += GenerateSetter(firstSetter,  splitted[splitted.length-1].replaceAll("\n", ""), splitted[splitted.length-2]);
+			String fieldName = splitted[splitted.length-1].replaceAll("\n", "");
+			String fieldType = splitted[splitted.length-2];
+			gettersAndSetters += GenerateSetter(firstSetter,  fieldName, fieldType);
 			if(firstSetter = true) firstSetter = false; 
-			gettersAndSetters += GenerateGetter(splitted[splitted.length-1].replaceAll("\n", ""), splitted[splitted.length-2]);
+			gettersAndSetters += GenerateGetter(fieldName, fieldType);
 		}
 		editorServ.insertText(file, gettersAndSetters, offset, 0);
 		editorServ.saveFile(file);

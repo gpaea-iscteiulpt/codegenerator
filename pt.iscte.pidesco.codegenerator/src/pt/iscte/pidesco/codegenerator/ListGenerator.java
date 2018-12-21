@@ -66,7 +66,7 @@ public class ListGenerator {
 					for(Map.Entry<String, String> entry : ucg.getMacroToCode().entrySet()) {
 					    String macro = entry.getKey();
 					    String code = entry.getValue();
-					    justList.add("Macro: " + macro + " - Code: " + code.substring(0, 20) + " - Scope: " + rangeScope);
+					    justList.add("Macro: " + macro + " - Scope: " + rangeScope.toString().toLowerCase());
 					    if(!checkUserCode(macro, allMacros)) {
 					    	addUserCode(allMacros, macro, code, rangeScope);
 					    }else {
@@ -108,7 +108,6 @@ public class ListGenerator {
 		frameOpt.setAlwaysOnTop(true);
 		Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
 		frameOpt.setLocation(dim.width/2-frameOpt.getSize().width/2, dim.height/2-frameOpt.getSize().height/2);
-		JOptionPane optionPane = new JOptionPane();
 		Object[] options = {"Yes", "Cancel"};
 		int value = JOptionPane.showOptionDialog(frameOpt, "The following macro already exists: " + macro + ". Do you wish to overwrite it?", "Warning",
 						JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
@@ -122,8 +121,6 @@ public class ListGenerator {
 				}
 			}
 			addUserCode(allMacros, macro, code, rangeScope);
-		}else {
-			System.out.println("Canceled.");
 		}
 		frameOpt.dispose();
 	}

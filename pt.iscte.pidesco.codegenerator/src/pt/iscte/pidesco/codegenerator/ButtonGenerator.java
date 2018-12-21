@@ -129,11 +129,12 @@ public class ButtonGenerator {
 					if(!visitor.getFields().isEmpty()) {
 						if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
 							String statement = "";
+							ArrayList<String> selectedFields = WindowGenerator.createConstructorOrGS(visitor.getFields(), false);
 							boolean firstStatement = true;
-							for(FieldDeclaration field: visitor.getFields()) {
-								String[] splitted = field.toString().replace(";", "").split(" ");
-								String fieldName = splitted[splitted.length-1].replaceAll("\n", "");
-								String fieldType = splitted[splitted.length-2];
+							for(String field: selectedFields) {
+								String[] splitted = field.split(" ");
+								String fieldType = splitted[0];
+								String fieldName = splitted[1];
 								if(firstStatement) { 
 									statement += "\n"; 
 									firstStatement = false; 
@@ -262,24 +263,37 @@ public class ButtonGenerator {
 					CodeVisitor visitor = new CodeVisitor();
 					editorServ.parseFile(f, visitor);
 					if(!visitor.getFields().isEmpty()) {
+						ArrayList<String> selectedFields = WindowGenerator.createConstructorOrGS(visitor.getFields(), true);
 						if(checkIfCursorIsInRange(f, editorServ, RangeScope.OUTSIDEMETHOD)) {
 							String className = f.getName().replace(".java", "");
 							String statement = "public " + className + "(";
-							String setValues = "){\n\t\t";
-							for(FieldDeclaration field: visitor.getFields()) {
-								String[] splitted = field.toString().replace(";", "").replace("\n", "").split(" ");
-								statement += splitted[splitted.length-2] + " " + splitted[splitted.length-1];
-								setValues += "this." + splitted[splitted.length-1] + "=" + splitted[splitted.length-1] + ";\n";
-								if(!field.equals(visitor.getFields().get(visitor.getFields().size()-1))){
-									statement += ", ";
-									setValues += "\t\t";
+							String setValues = "){\n";
+							String lastFieldName = selectedFields.get(selectedFields.size()-1).split(" ")[1];
+							for(String field: selectedFields) {
+								String[] splitted = field.split(" ");
+								String fieldName = splitted[1];
+								String fieldType = splitted[0];
+								statement += fieldType + " " + fieldName;
+								setValues += "\t\tthis." + fieldName + "=" + fieldName + ";\n";
+								if(!lastFieldName.equals(fieldName)){
+									statement += ", "; 
 								}	
 								
 							}
 							
-							statement = statement + setValues + "\t}";
-							editorServ.insertTextAtCursor(statement);
-							editorServ.saveFile(f);
+							String auxiliar = statement.replace("protected ", "").replace("private ", "").replace("public ", "");
+							boolean constructorExists = false;
+							for(MethodDeclaration method: visitor.getMethods()) {
+								if(auxiliar.equals(method.getName() + "(" +  createParameters(method))) {
+									constructorExists = true;
+								}
+							}
+							
+							if(!constructorExists) {
+								statement = statement + setValues + "\t}";
+								editorServ.insertTextAtCursor(statement);
+								editorServ.saveFile(f);
+							}
 						}
 					}
 					buttonGenerator.viewArea.layout();
