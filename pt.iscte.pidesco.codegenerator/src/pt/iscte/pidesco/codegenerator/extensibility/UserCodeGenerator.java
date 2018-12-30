@@ -18,19 +18,23 @@ public class UserCodeGenerator{
 		this.macroToCode = macroToCode;
 		this.rangeScope = rangeScope;
 	}
-
+	/** Function to get the RangeScope of the user code; 
+	 */
 	public RangeScope getRangeScope() {
 		return rangeScope;
 	}
-
+	/** Function to set new value of RangeScope of the user code; 
+	 */
 	public void setRangeScope(RangeScope rangeScope) {
 		this.rangeScope = rangeScope;
 	}
-
+	/** Function to get the the HashMap of macro to code of the user code; 
+	 */
 	public HashMap<String, String> getMacroToCode() {
 		return macroToCode;
 	}
-
+	/** Function to set new HashMap of macro to code of the user code; 
+	 */
 	public void setMacroToCode(HashMap<String, String> macroToCode) {
 		this.macroToCode = macroToCode;
 	}
