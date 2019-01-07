@@ -1,7 +1,5 @@
 package pt.iscte.pidesco.codegenerator.internal;
 
-import java.util.Set;
-
 import org.eclipse.ui.ISelectionListener;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;

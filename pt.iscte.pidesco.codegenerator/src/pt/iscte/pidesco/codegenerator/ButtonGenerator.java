@@ -100,7 +100,7 @@ public class ButtonGenerator {
 						}else if((sel.getText()).equals("sysout")) {
 							if(checkIfCursorIsInRange(f, editorServ, RangeScope.INSIDEMETHOD)) {
 								ClearSelected(editorServ);
-								String text = "\n\tSystem.out.println();";
+								String text = "\t\tSystem.out.println();";
 								editorServ.insertTextAtCursor(text);
 								editorServ.saveFile(f);
 							}

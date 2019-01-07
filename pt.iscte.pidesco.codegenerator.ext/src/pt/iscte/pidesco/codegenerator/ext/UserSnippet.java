@@ -15,7 +15,7 @@ public class UserSnippet implements UserCode{
 		ArrayList<UserCodeGenerator> list = new ArrayList<UserCodeGenerator>();
 		
 		HashMap<String,String> hm1 = new HashMap<String,String>(); 
-		hm1.put("comment1", "/*Comment template\n*/");
+		hm1.put("comment1", "/*Comment template\n\t*/");
 		UserCodeGenerator usg1 = new UserCodeGenerator(hm1, RangeScope.ALL);
 		
 		HashMap<String,String> hm2 = new HashMap<String,String>();
@@ -27,7 +27,7 @@ public class UserSnippet implements UserCode{
 		UserCodeGenerator usg3 = new UserCodeGenerator(hm3, RangeScope.OUTSIDEMETHOD);
 		
 		HashMap<String,String> hm4 = new HashMap<String,String>();
-		hm4.put("comment2", "/*Comment method\n\n*/");
+		hm4.put("comment2", "/*Comment method\n\n\t*/");
 		UserCodeGenerator usg4 = new UserCodeGenerator(hm4, RangeScope.INSIDECLASS);
 		
 		HashMap<String,String> hm5 = new HashMap<String,String>();
